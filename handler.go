@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/sirupsen/logrus"
 )
 
 // Handler handles communication with the telegram bot
@@ -75,7 +76,7 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	l.Info("got message from", update.Message.From.UserName)
 	switch update.Message.Text {
 	case "/start", "/restart":
-		t.addNewUser(update.Message.From)
+		t.addNewUser(update.Message.Chat)
 	case "/stop":
 		// TODO: t.removeUser()
 	case "/siti", "/shops":
@@ -85,9 +86,17 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	}
 }
 
-func (t *telegramHandler) addNewUser(user *tgbotapi.User) {
+func (t *telegramHandler) addNewUser(chat *tgbotapi.Chat) {
 	// TODO: Check if this user was already added previously
-	// TODO: Welcome user...
+	l := log.WithFields(logrus.Fields{"func": "telegramHandler.addNewUser", "user": chat.ID, "username": chat.UserName})
+	l.Debug("sending welcome message")
+
+	if err := t.SendMessage(chat.ID, messageWelcome); err != nil {
+		l.WithError(err).Error("could not send message")
+		return
+	}
+
+	l.Debug("user welcomed successfully")
 }
 
 // SendMessage tries to send a message to the specified destination
