@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	log "github.com/sirupsen/logrus"
 )
 
 // Handler handles communication with the telegram bot
@@ -20,7 +19,7 @@ type telegramHandler struct {
 
 // NewHandler returns an instance of the handler
 func NewHandler(token string, offset, timeout int, debugMode bool) (Handler, error) {
-	l := log.New().WithField("func", "NewHandler")
+	l := log.WithField("func", "NewHandler")
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
