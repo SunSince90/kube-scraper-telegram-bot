@@ -82,7 +82,7 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	case "/siti", "/shops":
 		// TODO: print available shops
 	default:
-		// TODO: command not recognized
+		t.unrecognizedCommand(update.Message.Chat)
 	}
 }
 
@@ -105,6 +105,18 @@ func (t *telegramHandler) removeUser(chat *tgbotapi.Chat) {
 	l.Debug("sending remove message")
 
 	if err := t.SendMessage(chat.ID, messageRemoveUser); err != nil {
+		l.WithError(err).Error("could not send message")
+		return
+	}
+
+	l.Debug("user notified successfully")
+}
+
+func (t *telegramHandler) unrecognizedCommand(chat *tgbotapi.Chat) {
+	l := log.WithFields(logrus.Fields{"func": "telegramHandler.unrecognizedCommand", "user": chat.ID, "username": chat.UserName})
+	l.Debug("sending shrug message")
+
+	if err := t.SendMessage(chat.ID, unrecognizedCommandMessage); err != nil {
 		l.WithError(err).Error("could not send message")
 		return
 	}
