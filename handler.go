@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -8,6 +9,7 @@ import (
 
 // Handler handles communication with the telegram bot
 type Handler interface {
+	ListenForUpdates(context.Context)
 }
 
 // telegramHandler is in charge of handling communication with the telegram bot
@@ -43,4 +45,39 @@ func NewHandler(token string, offset, timeout int, debugMode bool) (Handler, err
 	}
 
 	return h, nil
+}
+
+func (t *telegramHandler) ListenForUpdates(ctx context.Context) {
+	var u tgbotapi.Update
+
+	for {
+		select {
+		case u = <-t.updChan:
+			t.parseUpdate(u)
+		case <-ctx.Done():
+			// something else
+		}
+	}
+}
+
+func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
+	l := log.WithField("func", "telegramHandler.parseUpdate")
+	l.Info("got update")
+
+	if update.Message == nil { // ignore any non-Message Updates
+		l.Info("got non-message update. Skipping...")
+		return
+	}
+
+	l.Info("got message from", update.Message.From.UserName)
+	switch update.Message.Text {
+	case "/start", "/restart":
+		// TODO: t.addNewUser()
+	case "/stop":
+		// TODO: t.removeUser()
+	case "/siti", "/shops":
+		// TODO: print available shops
+	default:
+		// TODO: command not recognized
+	}
 }
