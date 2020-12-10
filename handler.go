@@ -78,7 +78,7 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	case "/start", "/restart":
 		t.addNewUser(update.Message.Chat)
 	case "/stop":
-		// TODO: t.removeUser()
+		t.removeUser(update.Message.Chat)
 	case "/siti", "/shops":
 		// TODO: print available shops
 	default:
@@ -97,6 +97,19 @@ func (t *telegramHandler) addNewUser(chat *tgbotapi.Chat) {
 	}
 
 	l.Debug("user welcomed successfully")
+}
+
+func (t *telegramHandler) removeUser(chat *tgbotapi.Chat) {
+	// TODO: Check if this user was already added previously
+	l := log.WithFields(logrus.Fields{"func": "telegramHandler.removeUser", "user": chat.ID, "username": chat.UserName})
+	l.Debug("sending remove message")
+
+	if err := t.SendMessage(chat.ID, messageRemoveUser); err != nil {
+		l.WithError(err).Error("could not send message")
+		return
+	}
+
+	l.Debug("user notified successfully")
 }
 
 // SendMessage tries to send a message to the specified destination
