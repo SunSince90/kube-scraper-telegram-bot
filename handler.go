@@ -9,7 +9,7 @@ import (
 
 // Handler handles communication with the telegram bot
 type Handler interface {
-	ListenForUpdates(context.Context)
+	ListenForUpdates(context.Context, chan struct{})
 }
 
 // telegramHandler is in charge of handling communication with the telegram bot
@@ -47,15 +47,17 @@ func NewHandler(token string, offset, timeout int, debugMode bool) (Handler, err
 	return h, nil
 }
 
-func (t *telegramHandler) ListenForUpdates(ctx context.Context) {
+func (t *telegramHandler) ListenForUpdates(ctx context.Context, stopChan chan struct{}) {
 	var u tgbotapi.Update
-
+	l := log.WithField("func", "telegramHandler.ListenForUpdates")
 	for {
 		select {
 		case u = <-t.updChan:
 			t.parseUpdate(u)
 		case <-ctx.Done():
-			// something else
+			l.Info("exiting")
+			close(stopChan)
+			return
 		}
 	}
 }
