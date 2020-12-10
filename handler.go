@@ -9,7 +9,8 @@ import (
 
 // Handler handles communication with the telegram bot
 type Handler interface {
-	ListenForUpdates(context.Context, chan struct{})
+	ListenForUpdates(ctx context.Context, stopChan chan struct{})
+	SendMessage(dest int64, msg string) (err error)
 }
 
 // telegramHandler is in charge of handling communication with the telegram bot
@@ -74,7 +75,7 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	l.Info("got message from", update.Message.From.UserName)
 	switch update.Message.Text {
 	case "/start", "/restart":
-		// TODO: t.addNewUser()
+		t.addNewUser(update.Message.From)
 	case "/stop":
 		// TODO: t.removeUser()
 	case "/siti", "/shops":
@@ -82,4 +83,16 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 	default:
 		// TODO: command not recognized
 	}
+}
+
+func (t *telegramHandler) addNewUser(user *tgbotapi.User) {
+	// TODO: Check if this user was already added previously
+	// TODO: Welcome user...
+}
+
+// SendMessage tries to send a message to the specified destination
+func (t *telegramHandler) SendMessage(dest int64, msg string) (err error) {
+	conf := tgbotapi.NewMessage(dest, msg)
+	_, err = t.client.Send(conf)
+	return
 }
