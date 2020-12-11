@@ -6,8 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -25,17 +28,17 @@ func main() {
 	var debugMode bool
 	var offset int
 	var timeout int
+	var firebaseServAcc string
+	var firebaseProjectName string
 
 	// -- Parse flags
 	flag.StringVarP(&token, "token", "t", "", "the telegram token")
 	flag.BoolVarP(&debugMode, "debug", "d", false, "whether to log debug log lines")
 	flag.IntVarP(&offset, "offset", "o", 0, "the offset to start")
 	flag.IntVar(&timeout, "timeout", 3600, "timeout in listening for updates")
+	flag.StringVarP(&firebaseServAcc, "firebaseServAcc", "s", "", "the firebase service account")
+	flag.StringVarP(&firebaseProjectName, "firebaseProject", "p", "", "the firebase project id")
 	flag.Parse()
-
-	// Contexts and exit channels
-	ctx, canc := context.WithCancel(context.Background())
-	exitChan := make(chan struct{})
 
 	// -- Set log level
 	if !debugMode {
@@ -49,10 +52,30 @@ func main() {
 		return
 	}
 
+	if len(firebaseProjectName) == 0 {
+		l.Fatal("no firebase project name provided. Exiting...")
+		return
+	}
+
+	if len(firebaseServAcc) == 0 {
+		l.Fatal("no firebase service account path provided. Exiting...")
+		return
+	}
+
+	// Contexts and exit channels
+	ctx, canc := context.WithCancel(context.Background())
+	exitChan := make(chan struct{})
 	l.Info("starting....")
 
+	// -- Get the firebase client
+	fsClient, err := getFirebaseClient(ctx, firebaseProjectName, firebaseServAcc)
+	if err != nil {
+		l.WithError(err).Fatal("error while loading firestore")
+	}
+	defer fsClient.Close()
+
 	// -- Get the handler
-	h, err := NewHandler(token, offset, timeout, debugMode)
+	h, err := NewHandler(token, offset, timeout, debugMode, fsClient)
 	if err != nil {
 		l.WithError(err).Fatal("error while loading handler")
 	}
@@ -74,4 +97,19 @@ func main() {
 	<-exitChan
 
 	l.Info("goodbye!")
+}
+
+func getFirebaseClient(ctx context.Context, projectName, servAcc string) (fsClient *firestore.Client, err error) {
+	conf := &firebase.Config{ProjectID: projectName}
+	app, err := firebase.NewApp(ctx, conf, option.WithServiceAccountFile(servAcc))
+	if err != nil {
+
+		return
+	}
+	fsClient, err = app.Firestore(ctx)
+	if err != nil {
+		return
+	}
+
+	return
 }

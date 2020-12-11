@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"cloud.google.com/go/firestore"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/sirupsen/logrus"
 )
@@ -18,11 +19,12 @@ type Handler interface {
 type telegramHandler struct {
 	client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
+	fs      *firestore.Client
 	lock    sync.Mutex
 }
 
 // NewHandler returns an instance of the handler
-func NewHandler(token string, offset, timeout int, debugMode bool) (Handler, error) {
+func NewHandler(token string, offset, timeout int, debugMode bool, fs *firestore.Client) (Handler, error) {
 	l := log.WithField("func", "NewHandler")
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -44,6 +46,7 @@ func NewHandler(token string, offset, timeout int, debugMode bool) (Handler, err
 	h := &telegramHandler{
 		client:  bot,
 		updChan: updChan,
+		fs:      fs,
 	}
 
 	return h, nil
