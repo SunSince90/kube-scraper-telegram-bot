@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -56,6 +59,19 @@ func main() {
 
 	go h.ListenForUpdates(ctx, exitChan)
 
-	_ = ctx
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(
+		signalChan,
+		syscall.SIGHUP,  // kill -SIGHUP XXXX
+		syscall.SIGINT,  // kill -SIGINT XXXX or Ctrl+c
+		syscall.SIGQUIT, // kill -SIGQUIT XXXX
+	)
+
+	<-signalChan
+	l.Info("exit requested")
+
 	canc()
+	<-exitChan
+
+	l.Info("goodbye!")
 }
