@@ -75,7 +75,7 @@ func main() {
 	defer fsClient.Close()
 
 	// -- Get the handler
-	h, err := NewHandler(token, offset, timeout, debugMode, fsClient)
+	h, err := NewHandler(ctx, token, offset, timeout, debugMode, fsClient)
 	if err != nil {
 		l.WithError(err).Fatal("error while loading handler")
 	}
