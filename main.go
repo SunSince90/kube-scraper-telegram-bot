@@ -68,14 +68,14 @@ func main() {
 	l.Info("starting....")
 
 	// -- Get the firebase client
-	fsClient, err := getFirebaseClient(ctx, firebaseProjectName, firebaseServAcc)
+	fs, err := NewFSHandler(ctx, firebaseProjectName, firebaseServAcc)
 	if err != nil {
 		l.WithError(err).Fatal("error while loading firestore")
 	}
-	defer fsClient.Close()
+	defer fs.Close()
 
 	// -- Get the handler
-	h, err := NewHandler(ctx, token, offset, timeout, debugMode, fsClient)
+	h, err := NewHandler(ctx, token, offset, timeout, debugMode, fs)
 	if err != nil {
 		l.WithError(err).Fatal("error while loading handler")
 	}
