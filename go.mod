@@ -10,4 +10,5 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	google.golang.org/api v0.36.0
+	google.golang.org/grpc v1.33.2
 )
