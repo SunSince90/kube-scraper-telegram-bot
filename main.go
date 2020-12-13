@@ -41,8 +41,8 @@ func main() {
 	flag.BoolVarP(&debugMode, "debug", "d", false, "whether to log debug log lines")
 	flag.IntVarP(&offset, "offset", "o", 0, "the offset to start")
 	flag.IntVar(&timeout, "timeout", 3600, "timeout in listening for updates")
-	flag.StringVarP(&firebaseServAcc, "firebaseServAcc", "s", "", "the firebase service account")
-	flag.StringVarP(&firebaseProjectName, "firebaseProject", "p", "", "the firebase project id")
+	flag.StringVarP(&firebaseServAcc, "firebase-service-account", "s", "", "the firebase service account")
+	flag.StringVarP(&firebaseProjectName, "firebase-project", "p", "", "the firebase project id")
 	flag.IntVar(&port, "port", 80, "the port where to listen from")
 	flag.Parse()
 
@@ -92,7 +92,7 @@ func main() {
 	serv := NewServer(ctx, h)
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
-		l.WithError(err).Error("failed to listen: %v", err)
+		l.WithError(err).Error("failed to listen")
 		return
 	}
 	grpcServer := grpc.NewServer()
