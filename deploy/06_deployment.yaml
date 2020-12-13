@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-bot
+  namespace: kube-scraper
+spec:
+  selector:
+    matchLabels:
+      run: telegram-bot
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: telegram-bot
+    spec:
+      volumes:
+      - name: gcp-service-account
+        secret:
+          secretName: gcp-service-account
+      containers:
+      - name: telegram-bot
+        image: <image>
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "300m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+        ports:
+        - containerPort: 8787
+        command:
+        - /listener
+        - --token
+        - $(TELEGRAM_TOKEN)
+        - --firebase-project
+        - $(FIREBASE_PROJECT_NAME)
+        - --firebase-service-account
+        - /credentials/service-account.json
+        - --port
+        - "8787"
+        env:
+          - name: TELEGRAM_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: telegram-tokens
+                key: dev
+          - name: FIREBASE_PROJECT_NAME
+            valueFrom:
+              secretKeyRef:
+                name: firebase-project-name
+                key: name
+        volumeMounts:
+        - name: gcp-service-account
+          readOnly: true
+          mountPath: "/credentials"

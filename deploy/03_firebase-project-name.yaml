@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: firebase-project-name
+  namespace: kube-scraper
+type: Opaque
+data:
+  name: <name>
+
