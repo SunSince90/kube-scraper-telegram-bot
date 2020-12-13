@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"github.com/SunSince90/telegram-listener/listenerserv"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -30,6 +34,7 @@ func main() {
 	var timeout int
 	var firebaseServAcc string
 	var firebaseProjectName string
+	var port int
 
 	// -- Parse flags
 	flag.StringVarP(&token, "token", "t", "", "the telegram token")
@@ -38,6 +43,7 @@ func main() {
 	flag.IntVar(&timeout, "timeout", 3600, "timeout in listening for updates")
 	flag.StringVarP(&firebaseServAcc, "firebaseServAcc", "s", "", "the firebase service account")
 	flag.StringVarP(&firebaseProjectName, "firebaseProject", "p", "", "the firebase project id")
+	flag.IntVar(&port, "port", 80, "the port where to listen from")
 	flag.Parse()
 
 	// -- Set log level
@@ -82,6 +88,18 @@ func main() {
 
 	go h.ListenForUpdates(ctx, exitChan)
 
+	// Start the server
+	serv := NewServer(ctx, h)
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		l.WithError(err).Error("failed to listen: %v", err)
+		return
+	}
+	grpcServer := grpc.NewServer()
+	listenerserv.RegisterTelegramListenerServer(grpcServer, serv)
+	go grpcServer.Serve(lis)
+
+	// Graceful shutdown
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
 		signalChan,
@@ -91,9 +109,11 @@ func main() {
 	)
 
 	<-signalChan
+	fmt.Println()
 	l.Info("exit requested")
 
 	canc()
+	grpcServer.GracefulStop()
 	<-exitChan
 
 	l.Info("goodbye!")
