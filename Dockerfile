@@ -10,12 +10,18 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
+COPY fs.go fs.go
+COPY handler.go handler.go
 COPY main.go main.go
-COPY cmd/ cmd/
-COPY pkg/ pkg/
+COPY serv.go serv.go
+COPY texts.go texts.go
+COPY types.go types.go
+COPY listenerserv/ listenerserv/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o listener *.go
+# NOTE: since this is going to run on Raspberry PI, we build this on ARM
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 GO111MODULE=on go build -a -o listener *.go
+RUN chmod +x listener
 
 # Use distroless as minimal base image to package the program binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
