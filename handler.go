@@ -39,7 +39,7 @@ func NewHandler(ctx context.Context, token string, offset, timeout int, debugMod
 	}
 
 	bot.Debug = debugMode
-	l.Info("Authorized on account %s\n", bot.Self.UserName)
+	l.WithField("account", bot.Self.UserName).Info("Authorized on account")
 
 	u := tgbotapi.NewUpdate(offset)
 	u.Timeout = timeout
