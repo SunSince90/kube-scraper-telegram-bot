@@ -63,6 +63,7 @@ func NewHandler(ctx context.Context, token string, offset, timeout int, debugMod
 func (t *telegramHandler) ListenForUpdates(ctx context.Context, stopChan chan struct{}) {
 	var u tgbotapi.Update
 	l := log.WithField("func", "telegramHandler.ListenForUpdates")
+	l.Info("listening for updates...")
 	for {
 		select {
 		case u = <-t.updChan:

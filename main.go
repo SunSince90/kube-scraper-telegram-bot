@@ -79,6 +79,7 @@ func main() {
 		l.WithError(err).Fatal("error while loading firestore")
 	}
 	defer fs.Close()
+	l.Info("firestore client loaded successfully")
 
 	// -- Get the handler
 	h, err := NewHandler(ctx, token, offset, timeout, debugMode, fs)
@@ -98,6 +99,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	listenerserv.RegisterTelegramListenerServer(grpcServer, serv)
 	go grpcServer.Serve(lis)
+	l.WithField("port", port).Info("serving requests...")
 
 	// Graceful shutdown
 	signalChan := make(chan os.Signal, 1)
