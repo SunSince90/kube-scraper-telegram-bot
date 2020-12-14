@@ -40,6 +40,8 @@ spec:
         - $(FIREBASE_PROJECT_NAME)
         - --firebase-service-account
         - /credentials/service-account.json
+        - -- address
+        - $(POD_IP)
         - --port
         - "8787"
         env:
@@ -53,6 +55,10 @@ spec:
               secretKeyRef:
                 name: firebase-project-name
                 key: name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
         volumeMounts:
         - name: gcp-service-account
           readOnly: true

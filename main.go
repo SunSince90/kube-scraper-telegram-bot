@@ -35,6 +35,7 @@ func main() {
 	var firebaseServAcc string
 	var firebaseProjectName string
 	var port int
+	var address string
 
 	// -- Parse flags
 	flag.StringVarP(&token, "token", "t", "", "the telegram token")
@@ -43,6 +44,7 @@ func main() {
 	flag.IntVar(&timeout, "timeout", 3600, "timeout in listening for updates")
 	flag.StringVarP(&firebaseServAcc, "firebase-service-account", "s", "", "the firebase service account")
 	flag.StringVarP(&firebaseProjectName, "firebase-project", "p", "", "the firebase project id")
+	flag.StringVarP(&address, "address", "a", "localhost", "the address where to listen from")
 	flag.IntVar(&port, "port", 80, "the port where to listen from")
 	flag.Parse()
 
@@ -91,7 +93,8 @@ func main() {
 
 	// Start the server
 	serv := NewServer(ctx, h)
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	endpoint := fmt.Sprintf("%s:%d", address, port)
+	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
 		l.WithError(err).Error("failed to listen")
 		return
@@ -99,7 +102,8 @@ func main() {
 	grpcServer := grpc.NewServer()
 	listenerserv.RegisterTelegramListenerServer(grpcServer, serv)
 	go grpcServer.Serve(lis)
-	l.WithField("port", port).Info("serving requests...")
+
+	l.WithField("endpoint", endpoint).Info("serving requests...")
 
 	// Graceful shutdown
 	signalChan := make(chan os.Signal, 1)
