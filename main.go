@@ -10,7 +10,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
-	"github.com/SunSince90/telegram-listener/listenerserv"
+	"github.com/SunSince90/telegram-bot-listener/listenerserv"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/api/option"

@@ -95,5 +95,5 @@ var _TelegramListener_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "telegram_message.proto",
+	Metadata: "proto/telegram_message.proto",
 }
