@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -23,10 +24,12 @@ type FS interface {
 }
 
 type fsHandler struct {
-	client  *firestore.Client
-	app     *firebase.App
-	mainCtx context.Context
-	timeout time.Duration
+	cacheChats map[int64]*TelegramChat
+	client     *firestore.Client
+	app        *firebase.App
+	mainCtx    context.Context
+	timeout    time.Duration
+	lock       sync.Mutex
 }
 
 // NewFSHandler returns a fsHandler, which is an implementation for FS
@@ -42,15 +45,46 @@ func NewFSHandler(ctx context.Context, projectName, servAcc string) (FS, error) 
 	}
 
 	return &fsHandler{
-		mainCtx: ctx,
-		app:     app,
-		client:  fsClient,
-		timeout: time.Duration(5) * time.Second,
+		mainCtx:    ctx,
+		app:        app,
+		client:     fsClient,
+		timeout:    time.Duration(10) * time.Second,
+		cacheChats: map[int64]*TelegramChat{},
 	}, nil
+}
+
+func (f *fsHandler) getChatFromCache(id int64) *TelegramChat {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	c, exists := f.cacheChats[id]
+	if exists && c != nil {
+		return c
+	}
+
+	return nil
+}
+
+func (f *fsHandler) insertChatIntoCache(chat *TelegramChat) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.cacheChats[chat.ChatID] = chat
+}
+
+func (f *fsHandler) deleteChatFromCache(id int64) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	delete(f.cacheChats, id)
 }
 
 // GetChat gets a chat from firestore
 func (f *fsHandler) GetChat(id int64) (*TelegramChat, error) {
+	if chat := f.getChatFromCache(id); chat != nil {
+		return chat, nil
+	}
+
 	docPath := path.Join(telegramChats, fmt.Sprintf("%d", id))
 	ctx, canc := context.WithTimeout(f.mainCtx, f.timeout)
 	defer canc()
@@ -69,6 +103,7 @@ func (f *fsHandler) GetChat(id int64) (*TelegramChat, error) {
 		return nil, err
 	}
 
+	f.insertChatIntoCache(&chat)
 	return &chat, nil
 }
 
@@ -90,11 +125,15 @@ func (f *fsHandler) InsertChat(chat *tgbotapi.Chat) error {
 	}
 
 	_, err := f.client.Doc(docPath).Set(ctx, addChat)
+	if err != nil {
+		f.insertChatIntoCache(&addChat)
+	}
 	return err
 }
 
 // DeleteChat deletes a chat from firestore
 func (f *fsHandler) DeleteChat(id int64) error {
+	defer f.deleteChatFromCache(id)
 	docPath := path.Join(telegramChats, fmt.Sprintf("%d", id))
 	ctx, canc := context.WithTimeout(f.mainCtx, f.timeout)
 	defer canc()
