@@ -174,7 +174,26 @@ func (t *telegramHandler) unrecognizedCommand(chat *tgbotapi.Chat) {
 
 // SendMessage tries to send a message to the specified destination
 func (t *telegramHandler) SendMessage(dest int64, msg string) (err error) {
-	conf := tgbotapi.NewMessage(dest, msg)
-	_, err = t.client.Send(conf)
+	l := log.WithFields(logrus.Fields{"func": "telegramHandler.SendMessage", "dest": dest})
+	destinations := []int64{}
+	if dest != 0 {
+		destinations = []int64{dest}
+	} else {
+		ids, err := t.fs.GetAllChatIDs()
+		if err != nil {
+			return err
+		}
+
+		destinations = ids
+	}
+
+	for _, d := range destinations {
+		conf := tgbotapi.NewMessage(d, msg)
+		_, err = t.client.Send(conf)
+		if err != nil {
+			l.WithError(err).Error("error while trying to send message")
+		}
+	}
+
 	return
 }
