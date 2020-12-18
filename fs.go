@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,6 +20,7 @@ import (
 type FS interface {
 	Close()
 	GetChat(int64) (*TelegramChat, error)
+	GetAllChatIDs() ([]int64, error)
 	InsertChat(*tgbotapi.Chat) error
 	DeleteChat(int64) error
 }
@@ -65,6 +67,25 @@ func (f *fsHandler) getChatFromCache(id int64) *TelegramChat {
 	return nil
 }
 
+func (f *fsHandler) getAllChatsIDsFromCache() []int64 {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if len(f.cacheChats) == 0 {
+		return []int64{}
+	}
+
+	list := make([]int64, len(f.cacheChats))
+	i := 0
+
+	for id := range f.cacheChats {
+		list[i] = id
+		i++
+	}
+
+	return list
+}
+
 func (f *fsHandler) insertChatIntoCache(chat *TelegramChat) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -77,6 +98,43 @@ func (f *fsHandler) deleteChatFromCache(id int64) {
 	defer f.lock.Unlock()
 
 	delete(f.cacheChats, id)
+}
+
+// GetAllChats gets all chat from firestore
+func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
+	l := log.WithField("func", "getAllChats").Logger
+
+	if chats := f.getAllChatsIDsFromCache(); len(chats) > 0 {
+		return chats, nil
+	}
+
+	ctx, canc := context.WithTimeout(f.mainCtx, f.timeout)
+	defer canc()
+
+	list := []int64{}
+	dociter := f.client.Collection(telegramChats).Documents(ctx)
+	defer dociter.Stop()
+
+	for {
+		doc, err := dociter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return nil, err
+		}
+
+		var chat TelegramChat
+		if err := doc.DataTo(&chat); err != nil {
+			l.WithField("id", doc.Ref.ID).Info("error while trying to get this document, skipping...")
+			continue
+		}
+
+		f.insertChatIntoCache(&chat)
+	}
+
+	return list, nil
 }
 
 // GetChat gets a chat from firestore
