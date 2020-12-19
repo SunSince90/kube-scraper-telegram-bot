@@ -1,4 +1,4 @@
 listener
 service-account.json
 client/*
-deploy/prod/*
+deploy/*
