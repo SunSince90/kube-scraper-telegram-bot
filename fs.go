@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
@@ -102,9 +103,10 @@ func (f *fsHandler) deleteChatFromCache(id int64) {
 
 // GetAllChats gets all chat from firestore
 func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
-	l := log.WithField("func", "getAllChats").Logger
+	l := log.WithField("func", "fsHandler.getAllChatIDs").Logger
 
 	if chats := f.getAllChatsIDsFromCache(); len(chats) > 0 {
+		l.Info("pulled from cache")
 		return chats, nil
 	}
 
@@ -139,7 +141,12 @@ func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
 
 // GetChat gets a chat from firestore
 func (f *fsHandler) GetChat(id int64) (*TelegramChat, error) {
+	l := log.WithFields(logrus.Fields{"func": "fsHandler.GetChat", "id": id}).Logger
+	if id == 0 {
+		return nil, fmt.Errorf("chat id cannot be 0")
+	}
 	if chat := f.getChatFromCache(id); chat != nil {
+		l.Info("pulled from cahche")
 		return chat, nil
 	}
 
@@ -191,6 +198,9 @@ func (f *fsHandler) InsertChat(chat *tgbotapi.Chat) error {
 
 // DeleteChat deletes a chat from firestore
 func (f *fsHandler) DeleteChat(id int64) error {
+	if id == 0 {
+		return fmt.Errorf("chat id cannot be 0")
+	}
 	defer f.deleteChatFromCache(id)
 	docPath := path.Join(telegramChats, fmt.Sprintf("%d", id))
 	ctx, canc := context.WithTimeout(f.mainCtx, f.timeout)
