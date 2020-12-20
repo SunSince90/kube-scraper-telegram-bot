@@ -85,7 +85,7 @@ func (t *telegramHandler) parseUpdate(update tgbotapi.Update) {
 		return
 	}
 
-	l.Info("got message from", update.Message.From.UserName)
+	l.WithFields(logrus.Fields{"from": update.Message.From.FirstName, "chatID": update.Message.Chat.ID}).Info("got message from", update.Message.From.UserName)
 	switch update.Message.Text {
 	case "/start", "/restart":
 		t.startUser(update.Message.Chat)
@@ -174,7 +174,7 @@ func (t *telegramHandler) unrecognizedCommand(chat *tgbotapi.Chat) {
 
 // SendMessage tries to send a message to the specified destination
 func (t *telegramHandler) SendMessage(dest int64, msg string) (err error) {
-	l := log.WithFields(logrus.Fields{"func": "telegramHandler.SendMessage", "dest": dest})
+	l := log.WithFields(logrus.Fields{"func": "telegramHandler.SendMessage"})
 	destinations := []int64{}
 	if dest != 0 {
 		destinations = []int64{dest}
@@ -187,13 +187,22 @@ func (t *telegramHandler) SendMessage(dest int64, msg string) (err error) {
 		destinations = ids
 	}
 
+	errors := 0
 	for _, d := range destinations {
+		l = l.WithField("dest", d)
 		conf := tgbotapi.NewMessage(d, msg)
 		_, err = t.client.Send(conf)
 		if err != nil {
 			l.WithError(err).Error("error while trying to send message")
+			errors++
+		} else {
+			l.Info("message sent")
 		}
 	}
 
-	return
+	if errors == len(destinations) {
+		return err
+	}
+
+	return nil
 }
