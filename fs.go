@@ -103,7 +103,7 @@ func (f *fsHandler) deleteChatFromCache(id int64) {
 
 // GetAllChats gets all chat from firestore
 func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
-	l := log.WithField("func", "fsHandler.getAllChatIDs").Logger
+	l := log.WithField("func", "fsHandler.getAllChatIDs")
 
 	if chats := f.getAllChatsIDsFromCache(); len(chats) > 0 {
 		l.Info("pulled from cache")
@@ -134,6 +134,7 @@ func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
 		}
 
 		f.insertChatIntoCache(&chat)
+		list = append(list, chat.ChatID)
 	}
 
 	return list, nil
@@ -141,7 +142,7 @@ func (f *fsHandler) GetAllChatIDs() ([]int64, error) {
 
 // GetChat gets a chat from firestore
 func (f *fsHandler) GetChat(id int64) (*TelegramChat, error) {
-	l := log.WithFields(logrus.Fields{"func": "fsHandler.GetChat", "id": id}).Logger
+	l := log.WithFields(logrus.Fields{"func": "fsHandler.GetChat", "id": id})
 	if id == 0 {
 		return nil, fmt.Errorf("chat id cannot be 0")
 	}
