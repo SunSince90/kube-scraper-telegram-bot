@@ -15,8 +15,8 @@ update-gomod:
 	go mod verify
 
 # Build this
-build: #test
-	go build -a -o listener *.go
+build:
+	go build -a -o bot *.go
 
 test:
 	go test ./...
