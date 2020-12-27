@@ -84,8 +84,10 @@ func (f *fsBackend) GetChatByID(id int64) (*backend.Chat, error) {
 
 	l := log.With().Str("func", "GetChatByID").Int64("id", id).Logger()
 	if f.UseCache {
-		// TODO: implement cache
-		l.Debug().Msg("pulled from cache")
+		if _chat := f.getChatFromCache(id); _chat != nil {
+			l.Debug().Msg("pulled from cache")
+			return _chat, nil
+		}
 	}
 
 	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", id))
@@ -109,7 +111,7 @@ func (f *fsBackend) GetChatByID(id int64) (*backend.Chat, error) {
 	c := convertToChat(&_chat)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
 	return c, nil
@@ -139,12 +141,13 @@ func (f *fsBackend) GetChatByUsername(username string) (*backend.Chat, error) {
 	if err := doc.DataTo(&_chat); err != nil {
 		return nil, err
 	}
+	c := convertToChat(&_chat)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
-	return convertToChat(&_chat), nil
+	return c, nil
 }
 
 // StoreChats inserts a chat into firestore
@@ -172,7 +175,7 @@ func (f *fsBackend) StoreChat(c *backend.Chat) error {
 	}
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
 	return nil
@@ -192,7 +195,7 @@ func (f *fsBackend) DeleteChat(id int64) error {
 	_, err := f.client.Doc(docPath).Delete(ctx)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.deleteChatFromCache(id)
 	}
 
 	return err
@@ -200,11 +203,14 @@ func (f *fsBackend) DeleteChat(id int64) error {
 
 // GetAllChats gets all chat from firestore
 func (f *fsBackend) GetAllChats() ([]*backend.Chat, error) {
+	l := log.With().Str("func", "GetAllChatIDs").Logger()
 	if f.UseCache {
-		// TODO: implement cache
+		if list := f.getAllChatsFromCache(); len(list) > 0 {
+			l.Debug().Msg("pulled from cache")
+			return list, nil
+		}
 	}
 
-	l := log.With().Str("func", "firestore.GetAllChatIDs").Logger()
 	timeout := time.Duration(15) * time.Second
 	ctx, canc := context.WithTimeout(context.Background(), timeout)
 	defer canc()
@@ -232,7 +238,7 @@ func (f *fsBackend) GetAllChats() ([]*backend.Chat, error) {
 		c := convertToChat(&_chat)
 
 		if f.UseCache {
-			// TODO: implement cache
+			f.insertChatIntoCache(c)
 		}
 
 		list = append(list, c)
