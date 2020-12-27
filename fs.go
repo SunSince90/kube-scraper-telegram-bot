@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go/v4"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	firebase "gopkg.in/telegram-bot-api.v4"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
