@@ -177,3 +177,23 @@ func (f *fsBackend) StoreChat(c *backend.Chat) error {
 
 	return nil
 }
+
+// DeleteChat deletes a chat from firestore
+func (f *fsBackend) DeleteChat(id int64) error {
+	if id == 0 {
+		return fmt.Errorf("chat id cannot be 0")
+	}
+
+	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", id))
+	timeout := time.Duration(15) * time.Second
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	_, err := f.client.Doc(docPath).Delete(ctx)
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return err
+}
