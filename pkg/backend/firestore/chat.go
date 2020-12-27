@@ -1,7 +1,6 @@
 package firestore
 
-// Chat is a representation of a chat
-type Chat struct {
+type chat struct {
 	// ChatID is the ID of the chat
 	ChatID int64 `firestore:"chat_id"`
 	// Title of the chat
