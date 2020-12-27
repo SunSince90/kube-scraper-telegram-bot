@@ -10,26 +10,22 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY fs.go fs.go
-COPY handler.go handler.go
 COPY main.go main.go
-COPY serv.go serv.go
-COPY texts.go texts.go
-COPY types.go types.go
-COPY listenerserv/ listenerserv/
+COPY cmd/ cmd/
+COPY pkg/ pkg/
 
 # Build
 # NOTE: since this is going to run on Raspberry PI, we build this on ARM
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 GO111MODULE=on go build -a -o listener *.go
-RUN chmod +x listener
+RUN go build -a -o bot *.go
+RUN chmod +x bot
 
 # Use distroless as minimal base image to package the program binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/listener .
+COPY --from=builder /workspace/bot .
 USER nonroot:nonroot
 
 ENV MODE=docker
 
-ENTRYPOINT ["/listener"]
+ENTRYPOINT ["/bot"]
