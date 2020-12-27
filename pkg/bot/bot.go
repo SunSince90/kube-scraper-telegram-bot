@@ -123,7 +123,28 @@ func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
 }
 
 func (b *telegramBot) startChat(update *tgbotapi.Update) {
-	// TODO: implement me
+	l := log.With().Str("func", "startChat").Logger()
+	// TODO: check the backend
+
+	// -- Get the chat
+	// TODO: get the chat from the backend
+
+	// -- Store the chat
+	// TODO: store the chat on the backend if it is not stored
+
+	// -- Notify the user
+	message := b.texts["messageWelcome"]
+	if !update.Message.Chat.IsPrivate() {
+		message = b.texts["messageWelcomeGroup"]
+	}
+
+	conf := tgbotapi.NewMessage(update.Message.Chat.ID, message)
+	conf.ReplyToMessageID = update.Message.MessageID
+
+	if _, err := b.client.Send(conf); err != nil {
+		l.Err(err).Msg("could not send welcome message")
+		return
+	}
 }
 
 func (b *telegramBot) stopChat(update *tgbotapi.Update) {
