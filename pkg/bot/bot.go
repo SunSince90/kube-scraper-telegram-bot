@@ -148,5 +148,21 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 }
 
 func (b *telegramBot) stopChat(update *tgbotapi.Update) {
-	// TODO: implement me
+	l := log.With().Str("func", "stopChat").Logger()
+	// TODO: check the backend
+
+	// -- Get the chat
+	// TODO: get the chat from the backend
+
+	// -- Delete the chat
+	// TODO: delete the chat from the backend if it is there
+
+	// -- Notify the user
+	conf := tgbotapi.NewMessage(update.Message.Chat.ID, b.texts["messageStop"])
+	conf.ReplyToMessageID = update.Message.MessageID
+
+	if _, err := b.client.Send(conf); err != nil {
+		l.Err(err).Msg("could not send stop message")
+		return
+	}
 }
