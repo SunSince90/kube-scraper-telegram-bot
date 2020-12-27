@@ -100,5 +100,32 @@ func (b *telegramBot) ListenForUpdates(ctx context.Context, exitChan chan struct
 }
 
 func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
+	l := log.With().Str("func", "ListenForUpdates").Logger()
+
+	if update.Message == nil {
+		// ignore any non-Message Updates
+		l.Debug().Msg("got non-message update. Skipping...")
+		return
+	}
+
+	l = l.With().Str("from", update.Message.From.FirstName).Int64("chat-id", update.Message.Chat.ID).Logger()
+
+	switch update.Message.Text {
+	case "/start", "/restart":
+		b.startChat(update)
+	case "/stop":
+		b.stopChat(update)
+	case "/siti", "/websites":
+		// TODO: print available shops
+	default:
+		// Nothing is printed if the message is not recognized
+	}
+}
+
+func (b *telegramBot) startChat(update *tgbotapi.Update) {
+	// TODO: implement me
+}
+
+func (b *telegramBot) stopChat(update *tgbotapi.Update) {
 	// TODO: implement me
 }
