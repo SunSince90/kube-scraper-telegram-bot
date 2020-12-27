@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 	fs "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	"github.com/rs/zerolog"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -111,4 +113,36 @@ func (f *fsBackend) GetChatByID(id int64) (*backend.Chat, error) {
 	}
 
 	return c, nil
+}
+
+// GetChatByUsername gets a chat from firestore by username
+func (f *fsBackend) GetChatByUsername(username string) (*backend.Chat, error) {
+	if len(username) == 0 {
+		return nil, fmt.Errorf("chat username cannot be 0")
+	}
+
+	timeout := time.Duration(15) * time.Second
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	docIter := f.client.Collection(f.ChatsCollection).Where("username", "==", username).Limit(1).Documents(ctx)
+	doc, err := docIter.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, backend.ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	var _chat chat
+	if err := doc.DataTo(&_chat); err != nil {
+		return nil, err
+	}
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return convertToChat(&_chat), nil
 }
