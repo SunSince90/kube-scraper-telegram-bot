@@ -110,7 +110,7 @@ func runTelegram(opts *options) {
 	tgBot, err := bot.NewBotListener(&bot.TelegramOptions{
 		Token: opts.telegramToken,
 		Debug: &opts.debug,
-	}, texts)
+	}, texts, fs)
 	if err != nil {
 		l.Fatal().Err(err).Msg("could not get telegram bot")
 	}

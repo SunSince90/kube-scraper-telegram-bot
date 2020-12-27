@@ -8,6 +8,7 @@ import (
 
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 
+	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/backend"
 	"github.com/rs/zerolog"
 )
 
@@ -30,11 +31,12 @@ type telegramBot struct {
 	client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
 	texts   map[string]string
+	backend backend.Backend
 	lock    sync.Mutex
 }
 
 // NewBotListener returns a new instance of the bot listener
-func NewBotListener(opts *TelegramOptions, texts map[string]string) (Bot, error) {
+func NewBotListener(opts *TelegramOptions, texts map[string]string, backend backend.Backend) (Bot, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("options not provided")
 	}
@@ -78,6 +80,7 @@ func NewBotListener(opts *TelegramOptions, texts map[string]string) (Bot, error)
 		client:  bot,
 		updChan: updChan,
 		texts:   texts,
+		backend: backend,
 	}
 
 	return b, nil
@@ -124,13 +127,36 @@ func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
 
 func (b *telegramBot) startChat(update *tgbotapi.Update) {
 	l := log.With().Str("func", "startChat").Logger()
-	// TODO: check the backend
+	if b.backend == nil {
+		l.Warn().Msg("no backend is set")
+		return
+	}
 
 	// -- Get the chat
-	// TODO: get the chat from the backend
+	_, err := b.backend.GetChatByID(update.Message.Chat.ID)
+	if err != nil {
+		if err != backend.ErrNotFound {
+			l.Err(err).Msg("error while getting chat")
+			return
+		}
 
-	// -- Store the chat
-	// TODO: store the chat on the backend if it is not stored
+		l.Debug().Msg("chat already exists, returning...")
+		return
+	}
+
+	// -- Store the chat on firestore
+	c := &backend.Chat{
+		ChatID:    update.Message.Chat.ID,
+		Title:     update.Message.Chat.Title,
+		Type:      getTelegramChatType(update.Message.Chat),
+		Username:  update.Message.Chat.UserName,
+		FirstName: update.Message.Chat.FirstName,
+		// LastName: update.Message.Chat.LastName,
+	}
+	if err := b.backend.StoreChat(c); err != nil {
+		l.Err(err).Msg("error while storing chat on firestore")
+		return
+	}
 
 	// -- Notify the user
 	message := b.texts["messageWelcome"]
@@ -149,13 +175,27 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 
 func (b *telegramBot) stopChat(update *tgbotapi.Update) {
 	l := log.With().Str("func", "stopChat").Logger()
-	// TODO: check the backend
+	if b.backend == nil {
+		l.Warn().Msg("no backend is set")
+		return
+	}
 
 	// -- Get the chat
-	// TODO: get the chat from the backend
+	c, err := b.backend.GetChatByID(update.Message.Chat.ID)
+	if err != nil {
+		if err != backend.ErrNotFound {
+			l.Err(err).Msg("error while getting chat")
+			return
+		}
 
-	// -- Delete the chat
-	// TODO: delete the chat from the backend if it is there
+		l.Debug().Msg("chat does not exist, returning...")
+		return
+	}
+
+	if err := b.backend.DeleteChat(c.ChatID); err != nil {
+		l.Err(err).Msg("error while deleting chat on firestore")
+		return
+	}
 
 	// -- Notify the user
 	conf := tgbotapi.NewMessage(update.Message.Chat.ID, b.texts["messageStop"])
