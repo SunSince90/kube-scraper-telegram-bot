@@ -146,3 +146,34 @@ func (f *fsBackend) GetChatByUsername(username string) (*backend.Chat, error) {
 
 	return convertToChat(&_chat), nil
 }
+
+// StoreChats inserts a chat into firestore
+func (f *fsBackend) StoreChat(c *backend.Chat) error {
+	if c == nil {
+		return fmt.Errorf("chat cannot be nil")
+	}
+
+	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", c.ChatID))
+	timeout := time.Duration(15) * time.Second
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	addChat := chat{
+		ChatID:    c.ChatID,
+		Type:      c.Type,
+		Username:  c.Username,
+		FirstName: c.FirstName,
+		LastName:  c.LastName,
+	}
+
+	_, err := f.client.Doc(docPath).Set(ctx, addChat)
+	if err != nil {
+		return err
+	}
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return nil
+}
