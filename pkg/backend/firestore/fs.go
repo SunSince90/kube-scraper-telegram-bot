@@ -197,3 +197,46 @@ func (f *fsBackend) DeleteChat(id int64) error {
 
 	return err
 }
+
+// GetAllChats gets all chat from firestore
+func (f *fsBackend) GetAllChats() ([]*backend.Chat, error) {
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	l := log.With().Str("func", "firestore.GetAllChatIDs").Logger()
+	timeout := time.Duration(15) * time.Second
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	list := []*backend.Chat{}
+	dociter := f.client.Collection(f.ChatsCollection).Documents(ctx)
+	defer dociter.Stop()
+
+	for {
+		doc, err := dociter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return nil, err
+		}
+
+		var _chat chat
+		if err := doc.DataTo(&_chat); err != nil {
+			l.Err(err).Int64("id", _chat.ChatID).Msg("error while trying to get this document, skipping...")
+			continue
+		}
+
+		c := convertToChat(&_chat)
+
+		if f.UseCache {
+			// TODO: implement cache
+		}
+
+		list = append(list, c)
+	}
+
+	return list, nil
+}
