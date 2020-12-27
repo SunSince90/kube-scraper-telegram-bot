@@ -16,7 +16,8 @@ var (
 )
 
 const (
-	timeout int = 3600
+	defaultTimeout int = 3600
+	defaultOffset  int = 0
 )
 
 func init() {
@@ -28,25 +29,42 @@ func init() {
 type telegramBot struct {
 	client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
+	replies map[string]string
 	lock    sync.Mutex
 }
 
 // NewBotListener returns a new instance of the bot listener
-func NewBotListener(token string, offset int, debugMode bool) (Bot, error) {
-	if len(token) == 0 {
+func NewBotListener(opts *TelegramOptions) (Bot, error) {
+	if opts == nil {
+		return nil, fmt.Errorf("options not provided")
+	}
+
+	if len(opts.Token) == 0 {
 		return nil, fmt.Errorf("no token provided")
 	}
 
 	l := log.With().Str("func", "NewBotListener").Logger()
 
 	// -- Get the client
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := tgbotapi.NewBotAPI(opts.Token)
 	if err != nil {
 		return nil, err
 	}
-	bot.Debug = debugMode
+
+	if opts.Debug != nil && *opts.Debug {
+		bot.Debug = *opts.Debug
+	}
 
 	l.Debug().Str("account", bot.Self.UserName).Msg("authorized")
+
+	// -- Get the values from the options
+	var offset, timeout = defaultOffset, defaultTimeout
+	if opts.Offset != nil && *opts.Offset > 0 {
+		offset = *opts.Offset
+	}
+	if opts.Timeout != nil && *opts.Timeout > 0 {
+		timeout = *opts.Timeout
+	}
 
 	// -- Get the updates channel
 	u := tgbotapi.NewUpdate(offset)
@@ -59,11 +77,28 @@ func NewBotListener(token string, offset int, debugMode bool) (Bot, error) {
 	b := &telegramBot{
 		client:  bot,
 		updChan: updChan,
+		replies: getRepliesMap(opts.Commands),
 	}
 
 	return b, nil
 }
 
 func (b *telegramBot) ListenForUpdates(ctx context.Context, exitChan chan struct{}) {
+	l := log.With().Str("func", "ListenForUpdates").Logger()
+
+	var u tgbotapi.Update
+	for {
+		select {
+		case u = <-b.updChan:
+			b.parseUpdate(&u)
+		case <-ctx.Done():
+			l.Info().Msg("exiting")
+			close(exitChan)
+			return
+		}
+	}
+}
+
+func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
 	// TODO: implement me
 }
