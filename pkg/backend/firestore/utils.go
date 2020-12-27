@@ -1,6 +1,6 @@
 package firestore
 
-import "github.com/SunSince90/telegram-bot-listener/pkg/backend"
+import "github.com/SunSince90/kube-scraper-telegram-bot/pkg/backend"
 
 func convertToChat(c *chat) *backend.Chat {
 	return &backend.Chat{

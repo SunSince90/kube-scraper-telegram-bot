@@ -9,12 +9,12 @@ import (
 	"syscall"
 
 	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
-	"github.com/SunSince90/telegram-bot-listener/listenerserv"
+	"github.com/SunSince90/kube-scraper-telegram-bot/listenerserv"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	firebase "gopkg.in/telegram-bot-api.v4"
 )
 
 var (

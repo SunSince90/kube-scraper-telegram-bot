@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 
 	"github.com/rs/zerolog"
 )

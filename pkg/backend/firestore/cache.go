@@ -1,6 +1,6 @@
 package firestore
 
-import "github.com/SunSince90/telegram-bot-listener/pkg/backend"
+import "github.com/SunSince90/kube-scraper-telegram-bot/pkg/backend"
 
 func (f *fsBackend) getChatFromCache(id int64) *backend.Chat {
 	f.lock.Lock()

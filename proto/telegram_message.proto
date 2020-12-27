@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/SunSince90/telegram-bot-listener/listenerserv";
+option go_package = "github.com/SunSince90/kube-scraper-telegram-bot/listenerserv";
 
 package telegramlistener;
 

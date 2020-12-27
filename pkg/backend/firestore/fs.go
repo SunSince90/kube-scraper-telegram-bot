@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SunSince90/telegram-bot-listener/pkg/backend"
+	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/backend"
 
 	fs "cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
+	firebase "firebase.google.com/go/v4"
 	"github.com/rs/zerolog"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"

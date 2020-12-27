@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/SunSince90/telegram-bot-listener/listenerserv"
+	"github.com/SunSince90/kube-scraper-telegram-bot/listenerserv"
 )
 
 type server struct {
