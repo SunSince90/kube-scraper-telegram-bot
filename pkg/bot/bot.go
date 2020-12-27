@@ -29,12 +29,12 @@ func init() {
 type telegramBot struct {
 	client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
-	replies map[string]string
+	texts   map[string]string
 	lock    sync.Mutex
 }
 
 // NewBotListener returns a new instance of the bot listener
-func NewBotListener(opts *TelegramOptions) (Bot, error) {
+func NewBotListener(opts *TelegramOptions, texts map[string]string) (Bot, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("options not provided")
 	}
@@ -77,7 +77,7 @@ func NewBotListener(opts *TelegramOptions) (Bot, error) {
 	b := &telegramBot{
 		client:  bot,
 		updChan: updChan,
-		replies: getRepliesMap(opts.Commands),
+		texts:   texts,
 	}
 
 	return b, nil

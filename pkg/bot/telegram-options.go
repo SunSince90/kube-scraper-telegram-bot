@@ -10,6 +10,4 @@ type TelegramOptions struct {
 	Timeout *int `yaml:"timeout"`
 	// Whether to set debug mode in telegram
 	Debug *bool `yaml:"debug,omitempty"`
-	// Commands for the bot
-	Commands []MessageCommand `yaml:"messages"`
 }
