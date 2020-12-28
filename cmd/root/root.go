@@ -17,6 +17,7 @@ package root
 import (
 	"os"
 
+	"github.com/SunSince90/kube-scraper-telegram-bot/cmd/firestore"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
@@ -56,6 +57,9 @@ func NewRootCommand() *cobra.Command {
 
 	// -- Mark as required
 	cmd.MarkPersistentFlagRequired("token")
+
+	// -- Subcommands
+	cmd.AddCommand(firestore.NewFirestoreCommand())
 
 	return cmd
 }
