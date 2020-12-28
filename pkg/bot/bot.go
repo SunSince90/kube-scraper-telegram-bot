@@ -6,10 +6,10 @@ import (
 	"os"
 	"sync"
 
-	tgbotapi "gopkg.in/telegram-bot-api.v4"
-
-	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/backend"
+	ksb "github.com/SunSince90/kube-scraper-backend/pkg/backend"
+	pb "github.com/SunSince90/kube-scraper-backend/pkg/pb"
 	"github.com/rs/zerolog"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 var (
@@ -31,16 +31,19 @@ type telegramBot struct {
 	client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
 	texts   map[string]string
-	backend backend.Backend
+	backend ksb.Backend
 	lock    sync.Mutex
 }
 
 // NewBotListener returns a new instance of the bot listener
-func NewBotListener(opts *TelegramOptions, texts map[string]string, backend backend.Backend) (Bot, error) {
+func NewBotListener(opts *TelegramOptions, texts map[string]string, backend ksb.Backend) (Bot, error) {
+	// -- Validation
+	if backend == nil {
+		return nil, fmt.Errorf("backend not set")
+	}
 	if opts == nil {
 		return nil, fmt.Errorf("options not provided")
 	}
-
 	if len(opts.Token) == 0 {
 		return nil, fmt.Errorf("no token provided")
 	}
@@ -135,7 +138,7 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 	// -- Get the chat
 	_, err := b.backend.GetChatByID(update.Message.Chat.ID)
 	if err != nil {
-		if err != backend.ErrNotFound {
+		if err != ksb.ErrNotFound {
 			l.Err(err).Msg("error while getting chat")
 			return
 		}
@@ -145,8 +148,8 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 	}
 
 	// -- Store the chat on firestore
-	c := &backend.Chat{
-		ChatID:    update.Message.Chat.ID,
+	c := &pb.Chat{
+		Id:        update.Message.Chat.ID,
 		Title:     update.Message.Chat.Title,
 		Type:      getTelegramChatType(update.Message.Chat),
 		Username:  update.Message.Chat.UserName,
@@ -183,7 +186,7 @@ func (b *telegramBot) stopChat(update *tgbotapi.Update) {
 	// -- Get the chat
 	c, err := b.backend.GetChatByID(update.Message.Chat.ID)
 	if err != nil {
-		if err != backend.ErrNotFound {
+		if err != ksb.ErrNotFound {
 			l.Err(err).Msg("error while getting chat")
 			return
 		}
@@ -192,7 +195,7 @@ func (b *telegramBot) stopChat(update *tgbotapi.Update) {
 		return
 	}
 
-	if err := b.backend.DeleteChat(c.ChatID); err != nil {
+	if err := b.backend.DeleteChat(c.Id); err != nil {
 		l.Err(err).Msg("error while deleting chat on firestore")
 		return
 	}
