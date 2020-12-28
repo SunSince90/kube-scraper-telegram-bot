@@ -10,4 +10,6 @@ type TelegramOptions struct {
 	Timeout *int `yaml:"timeout"`
 	// Whether to set debug mode in telegram
 	Debug *bool `yaml:"debug,omitempty"`
+	// Texts of the bot
+	Texts map[string]string `yaml:"texts"`
 }

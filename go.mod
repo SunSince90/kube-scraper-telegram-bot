@@ -10,4 +10,5 @@ require (
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497 // indirect
 	gopkg.in/telegram-bot-api.v4 v4.6.4
+	gopkg.in/yaml.v2 v2.2.8
 )
