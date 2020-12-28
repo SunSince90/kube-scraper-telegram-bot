@@ -91,7 +91,7 @@ func runFirestore(opts *firestoreOptions, topts *bot.TelegramOptions) {
 	defer fs.Close()
 
 	// -- Start the bot
-	tgBot, err := bot.NewBotListener(topts, topts.Texts, fs)
+	tgBot, err := bot.NewBotListener(topts, fs)
 	if err != nil {
 		l.Fatal().Err(err).Msg("could not get telegram bot")
 	}

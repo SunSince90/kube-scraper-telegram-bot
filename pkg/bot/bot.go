@@ -36,7 +36,7 @@ type telegramBot struct {
 }
 
 // NewBotListener returns a new instance of the bot listener
-func NewBotListener(opts *TelegramOptions, texts map[string]string, backend ksb.Backend) (Bot, error) {
+func NewBotListener(opts *TelegramOptions, backend ksb.Backend) (Bot, error) {
 	// -- Validation
 	if backend == nil {
 		return nil, fmt.Errorf("backend not set")
@@ -82,7 +82,7 @@ func NewBotListener(opts *TelegramOptions, texts map[string]string, backend ksb.
 	b := &telegramBot{
 		client:  bot,
 		updChan: updChan,
-		texts:   texts,
+		texts:   opts.Texts,
 		backend: backend,
 	}
 
