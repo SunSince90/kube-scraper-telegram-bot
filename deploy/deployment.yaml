@@ -17,6 +17,9 @@ spec:
       - name: gcp-service-account
         secret:
           secretName: gcp-service-account
+      - name: bot-texts
+        configMap:
+          name: bot-texts
       containers:
       - name: telegram-bot
         image: <image>
@@ -30,36 +33,39 @@ spec:
             cpu: "500m"
         securityContext:
           allowPrivilegeEscalation: false
-        ports:
-        - containerPort: 8787
         command:
-        - /listener
+        - /bot
         - --token
         - $(TELEGRAM_TOKEN)
-        - --firebase-project
-        - $(FIREBASE_PROJECT_NAME)
-        - --firebase-service-account
+        - --texts-path
+        - /texts/texts.yaml
+        - firestore
+        - --project-id
+        - $(FIREBASE_PROJECT_ID)
+        - --service-account-path
         - /credentials/service-account.json
-        - -- address
-        - $(POD_IP)
-        - --port
-        - "8787"
+        - --chats-collection
+        - $(CHATS_COLLECTION)
         env:
           - name: TELEGRAM_TOKEN
             valueFrom:
               secretKeyRef:
-                name: telegram-tokens
-                key: dev
-          - name: FIREBASE_PROJECT_NAME
+                name: telegram-token
+                key: token
+          - name: FIREBASE_PROJECT_ID
             valueFrom:
               secretKeyRef:
-                name: firebase-project-name
-                key: name
-          - name: POD_IP
+                name: firebase-project-id
+                key: project-id
+          - name: CHATS_COLLECTION
             valueFrom:
-              fieldRef:
-                fieldPath: status.podIP
+              configMapKeyRef:
+                name: chats-config
+                key: firestore.chats-collection
         volumeMounts:
         - name: gcp-service-account
           readOnly: true
           mountPath: "/credentials"
+        - name: bot-texts
+          readOnly: true
+          mountPath: "/texts"
