@@ -31,7 +31,7 @@ func NewRootCommand() *cobra.Command {
 	var debug bool
 
 	cmd := &cobra.Command{
-		Use:     `bot --token <token> [--texts-paths <texts-path> --debug]`,
+		Use:     `bot --token <token> [--texts-path <texts-path> --debug]`,
 		Example: `bot --token sg8Svd12 <backend>`,
 		Short:   "listens for chat messages",
 		Long:    `telegram listens for chat messages from users on telegram.`,

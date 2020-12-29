@@ -83,7 +83,7 @@ func runFirestore(opts *firestoreOptions, topts *bot.TelegramOptions) {
 	fs, err := firestore.NewBackend(ctx, opts.serviceAccountPath, &firestore.Options{
 		ProjectID:       opts.projectID,
 		ChatsCollection: opts.chatsCollection,
-		UseCache:        true,
+		UseCache:        false,
 	})
 	if err != nil {
 		l.Fatal().Err(err).Msg("error while getting firestore as backend")

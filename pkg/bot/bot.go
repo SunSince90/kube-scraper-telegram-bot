@@ -107,6 +107,12 @@ func (b *telegramBot) ListenForUpdates(ctx context.Context, exitChan chan struct
 
 func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
 	l := log.With().Str("func", "ListenForUpdates").Logger()
+	text := update.Message.Text
+	if len(text) > 200 {
+		text = text[0:100] + "..."
+	}
+	l.Debug().Int64("chat-id", update.Message.Chat.ID).Str("title", update.Message.Chat.Title).
+		Str("type", update.Message.Chat.Title).Str("text", text).Msg("got message")
 
 	if update.Message == nil {
 		// ignore any non-Message Updates
@@ -125,11 +131,12 @@ func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
 		// TODO: print available shops
 	default:
 		// Nothing is printed if the message is not recognized
+		l.Debug().Msg("command not recognized: nothing will be printed...")
 	}
 }
 
 func (b *telegramBot) startChat(update *tgbotapi.Update) {
-	l := log.With().Str("func", "startChat").Logger()
+	l := log.With().Str("func", "startChat").Int64("chat-id", update.Message.Chat.ID).Logger()
 	if b.backend == nil {
 		l.Warn().Msg("no backend is set")
 		return
@@ -137,17 +144,18 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 
 	// -- Get the chat
 	_, err := b.backend.GetChatByID(update.Message.Chat.ID)
-	if err != nil {
-		if err != ksb.ErrNotFound {
-			l.Err(err).Msg("error while getting chat")
-			return
-		}
+	if err == nil {
+		l.Debug().Msg("chat already exists: nothing needs to be done...")
+		return
+	}
 
-		l.Debug().Msg("chat already exists, returning...")
+	if err != ksb.ErrNotFound {
+		l.Error().Err(err).Msg("error while getting chat")
 		return
 	}
 
 	// -- Store the chat on firestore
+	l.Debug().Msg("chat does not exist, going to create...")
 	c := &pb.Chat{
 		Id:        update.Message.Chat.ID,
 		Title:     update.Message.Chat.Title,
@@ -177,7 +185,7 @@ func (b *telegramBot) startChat(update *tgbotapi.Update) {
 }
 
 func (b *telegramBot) stopChat(update *tgbotapi.Update) {
-	l := log.With().Str("func", "stopChat").Logger()
+	l := log.With().Str("func", "stopChat").Int64("chat-id", update.Message.Chat.ID).Logger()
 	if b.backend == nil {
 		l.Warn().Msg("no backend is set")
 		return
@@ -186,14 +194,15 @@ func (b *telegramBot) stopChat(update *tgbotapi.Update) {
 	// -- Get the chat
 	c, err := b.backend.GetChatByID(update.Message.Chat.ID)
 	if err != nil {
-		if err != ksb.ErrNotFound {
-			l.Err(err).Msg("error while getting chat")
+		if err == ksb.ErrNotFound {
+			l.Debug().Err(err).Msg("chat does not exist: nothing needs to be done...")
 			return
 		}
 
-		l.Debug().Msg("chat does not exist, returning...")
+		l.Error().Err(err).Msg("could not retrieve chat from backend")
 		return
 	}
+	l.Debug().Msg("chat found, goint to remove...")
 
 	if err := b.backend.DeleteChat(c.Id); err != nil {
 		l.Err(err).Msg("error while deleting chat on firestore")
