@@ -16,7 +16,7 @@ COPY pkg/ pkg/
 
 # Build
 # NOTE: since this is going to run on Raspberry PI, we build this on ARM
-RUN go build -a -o bot *.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 GO111MODULE=on go build -a -o bot *.go
 RUN chmod +x bot
 
 # Use distroless as minimal base image to package the program binary
