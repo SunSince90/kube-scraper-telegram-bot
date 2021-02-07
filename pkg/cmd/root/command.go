@@ -69,3 +69,7 @@ func GetRootCommand() *cobra.Command {
 
 	return cmd
 }
+
+func run(opts *options) {
+
+}
