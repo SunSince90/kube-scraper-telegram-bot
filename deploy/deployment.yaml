@@ -13,13 +13,6 @@ spec:
       labels:
         run: telegram-bot
     spec:
-      volumes:
-      - name: gcp-service-account
-        secret:
-          secretName: gcp-service-account
-      - name: bot-texts
-        configMap:
-          name: bot-texts
       containers:
       - name: telegram-bot
         image: <image>
@@ -37,35 +30,11 @@ spec:
         - /bot
         - --token
         - $(TELEGRAM_TOKEN)
-        - --texts-path
-        - /texts/texts.yaml
-        - firestore
-        - --project-id
-        - $(FIREBASE_PROJECT_ID)
-        - --service-account-path
-        - /credentials/service-account.json
-        - --chats-collection
-        - $(CHATS_COLLECTION)
+        - --redis-address
+        - <address>
         env:
           - name: TELEGRAM_TOKEN
             valueFrom:
               secretKeyRef:
                 name: telegram-token
                 key: token
-          - name: FIREBASE_PROJECT_ID
-            valueFrom:
-              secretKeyRef:
-                name: firebase-project-id
-                key: project-id
-          - name: CHATS_COLLECTION
-            valueFrom:
-              configMapKeyRef:
-                name: chats-config
-                key: firestore.chats-collection
-        volumeMounts:
-        - name: gcp-service-account
-          readOnly: true
-          mountPath: "/credentials"
-        - name: bot-texts
-          readOnly: true
-          mountPath: "/texts"
