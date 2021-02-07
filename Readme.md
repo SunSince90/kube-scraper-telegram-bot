@@ -4,20 +4,10 @@ A telegram bot living inside *Kubernetes* - but can also run locally, if you
 want - that listens for messages sent by users and based on what the user
 write, it updates a backend accordingly.
 
-For example, if the user write `/start` or `/restart` the telegram bot will
-add a new `Chat` object on the backend - i.e. *Firestore* - and, if successful,
-replies to the user with a custom message.
-
 If you'd like to include this in your project please be aware that I will no be
 giving no warranty about its functionalities.
 You are more than welcome to open issues, discussions, ask for help and make
 pull requests if you'd like to.
-
-## Notes
-
-* As of now, the bot is only able to work on *private* chats. *Group* and
-*supergroup*s were not tested and the bot may have unexpected behaviors.
-* Only firestore is available as a backend for the moment.
 
 ## Kube Scraper project
 
@@ -41,12 +31,6 @@ As stated above, this project serves as a good exercise for me and it is
 currently running in a cluster of *Raspberry Pis* running
 [k3s](https://k3s.io/).
 
-## Backend flexibility
-
-Different backends can be used, but as of now, only firestore is implemented.
-In future, when I will be able to test other backends I will add other
-implementations.
-
 ## Get it
 
 ```bash
@@ -65,28 +49,16 @@ make build
 ```bash
 ./bot
 -- token <telegram-token> \
--- texts-path OVADKDkK9KxXI0xZ
-firestore
---chats-collection myChats
---project-id project-id-sZljq
---service-account-path ./credentials/service-account.json
+--redis-address 10.10.10.10:6379
 ```
 
 Some description about the command above:
 
 * `--token` is the telegram bot token, as provided by the
 [BotFather](https://core.telegram.org/bots#6-botfather)
-* `--texts-path` the path of the `text.yaml` file containing the texts that
-will be sent to users.
-* `--chats-collection` is the name of the firestore collection that contains
-all chats documents
-* `--project-id` is the id of the firebase project
-* `--service-account-path` is the path of the *JSON* service account
-
-## Texts
-
-Texts sent by the bot can be customized by filling the appropriate values in
-`texts.yaml`.
+* `--redis-address` is the address where redis is running
+* `--redis-topic` is the name of the topic -- or channel -- where to send
+notifications, if you want to send them.
 
 ### Build and push the image
 
