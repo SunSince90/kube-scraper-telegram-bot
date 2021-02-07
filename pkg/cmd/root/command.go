@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/bot"
-	"github.com/go-redis/redis"
+	redis "github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
