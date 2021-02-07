@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	redis "github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
@@ -23,6 +24,7 @@ const (
 // TelegramBot is a structure that holds the telegram bot's information
 type TelegramBot struct {
 	Client  *tgbotapi.BotAPI
+	redis   *redis.Client
 	updChan tgbotapi.UpdatesChannel
 	log     zerolog.Logger
 	lock    sync.Mutex
@@ -31,10 +33,17 @@ type TelegramBot struct {
 // Option represents an option for the telegram bot
 type Option func(*TelegramBot)
 
-// WithLogger set a logger to the telegram bot
+// WithLogger sets a logger to the telegram bot
 func WithLogger(z zerolog.Logger) Option {
 	return func(tb *TelegramBot) {
 		tb.log = z
+	}
+}
+
+// WithRedisClient sets the redis client
+func WithRedisClient(r *redis.Client) Option {
+	return func(tb *TelegramBot) {
+		tb.redis = r
 	}
 }
 

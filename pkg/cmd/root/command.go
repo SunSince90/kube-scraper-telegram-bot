@@ -15,9 +15,15 @@
 package root
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/bot"
+	"github.com/go-redis/redis"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +60,9 @@ func GetRootCommand() *cobra.Command {
 				log = log.With().Logger().Level(zerolog.DebugLevel)
 			}
 		},
+		Run: func(_ *cobra.Command, _ []string) {
+			run(opts)
+		},
 	}
 
 	// -- Flags
@@ -61,7 +70,7 @@ func GetRootCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.debugMode, "debug", false, "whether to log debug lines")
 
 	cmd.Flags().StringVar(&opts.redis.address, "redis-address", "", "the address of redis service")
-	cmd.Flags().StringVar(&opts.redis.topic, "telegram-events", "", "the name of the topic to use")
+	cmd.Flags().StringVar(&opts.redis.topic, "redis-topic", "telegram-event", "the name of the topic where to publish events")
 
 	// -- Mark as required
 	cmd.MarkFlagRequired("token")
@@ -71,5 +80,42 @@ func GetRootCommand() *cobra.Command {
 }
 
 func run(opts *options) {
+	rdb := redis.NewClient(&redis.Options{Addr: opts.redis.address})
+	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
+		log.Fatal().Msg("could not get pong message")
+		return
+	}
+	defer rdb.Close()
 
+	tgbot, err := bot.NewBotListener(opts.token, bot.WithLogger(log), bot.WithRedisClient(rdb))
+	if err != nil {
+		log.Fatal().Err(err).Msg("fatal error while starting bot")
+		return
+	}
+
+	ctx, canc := context.WithCancel(context.Background())
+	exitChan := make(chan struct{})
+
+	go func() {
+		tgbot.ListenForUpdates(ctx)
+		close(exitChan)
+	}()
+
+	// -- Graceful shutdown
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(
+		signalChan,
+		syscall.SIGHUP,  // kill -SIGHUP XXXX
+		syscall.SIGINT,  // kill -SIGINT XXXX or Ctrl+c
+		syscall.SIGQUIT, // kill -SIGQUIT XXXX
+	)
+
+	<-signalChan
+	fmt.Println()
+	log.Info().Msg("exit requested")
+
+	canc()
+	<-exitChan
+
+	log.Info().Msg("goodbye!")
 }
