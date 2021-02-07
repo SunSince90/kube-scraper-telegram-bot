@@ -41,7 +41,7 @@ func init() {
 // GetRootCommand returns the root command
 func GetRootCommand() *cobra.Command {
 	opts := &options{
-		gcp: &gcpOptions{},
+		redis: &redisOptions{},
 	}
 
 	cmd := &cobra.Command{
@@ -60,12 +60,12 @@ func GetRootCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.token, "token", "", "the token of the telegram bot")
 	cmd.Flags().BoolVar(&opts.debugMode, "debug", false, "whether to log debug lines")
 
-	cmd.Flags().StringVar(&opts.gcp.pubsubTopic, "pubsub-topic", "telegram-events", "the token of the telegram bot")
-	cmd.Flags().StringVar(&opts.gcp.servAccPath, "gcp-service-account", "", "path to GCP service account")
+	cmd.Flags().StringVar(&opts.redis.address, "redis-address", "", "the address of redis service")
+	cmd.Flags().StringVar(&opts.redis.topic, "telegram-events", "", "the name of the topic to use")
 
 	// -- Mark as required
 	cmd.MarkFlagRequired("token")
-	cmd.MarkFlagRequired("gcp-service-account")
+	cmd.MarkFlagRequired("redis-address")
 
 	return cmd
 }

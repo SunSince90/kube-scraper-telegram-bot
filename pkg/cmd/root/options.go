@@ -17,10 +17,10 @@ package root
 type options struct {
 	debugMode bool
 	token     string
-	gcp       *gcpOptions
+	redis     *redisOptions
 }
 
-type gcpOptions struct {
-	pubsubTopic string
-	servAccPath string
+type redisOptions struct {
+	address string
+	topic   string
 }
