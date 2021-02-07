@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SunSince90/kube-scraper-telegram-bot/cmd/root"
+	"github.com/SunSince90/kube-scraper-telegram-bot/pkg/cmd/root"
 	"github.com/rs/zerolog"
 )
 
@@ -13,7 +13,7 @@ var (
 )
 
 func main() {
-	cmd := root.NewRootCommand()
+	cmd := root.GetRootCommand()
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
