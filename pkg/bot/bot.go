@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
-	ksb "github.com/SunSince90/kube-scraper-backend/pkg/backend"
-	pb "github.com/SunSince90/kube-scraper-backend/pkg/pb"
 	"github.com/rs/zerolog"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
@@ -21,200 +20,116 @@ const (
 	defaultOffset  int = 0
 )
 
-func init() {
-	output := zerolog.ConsoleWriter{Out: os.Stdout}
-	log = zerolog.New(output).With().Timestamp().Logger()
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-}
-
-type telegramBot struct {
-	client  *tgbotapi.BotAPI
+// TelegramBot is a structure that holds the telegram bot's information
+type TelegramBot struct {
+	Client  *tgbotapi.BotAPI
 	updChan tgbotapi.UpdatesChannel
-	texts   map[string]string
-	backend ksb.Backend
+	log     zerolog.Logger
 	lock    sync.Mutex
 }
 
-// NewBotListener returns a new instance of the bot listener
-func NewBotListener(opts *TelegramOptions, backend ksb.Backend) (Bot, error) {
-	// -- Validation
-	if backend == nil {
-		return nil, fmt.Errorf("backend not set")
-	}
-	if opts == nil {
-		return nil, fmt.Errorf("options not provided")
-	}
-	if len(opts.Token) == 0 {
-		return nil, fmt.Errorf("no token provided")
-	}
+// Option represents an option for the telegram bot
+type Option func(*TelegramBot)
 
-	l := log.With().Str("func", "NewBotListener").Logger()
+// WithLogger set a logger to the telegram bot
+func WithLogger(z zerolog.Logger) Option {
+	return func(tb *TelegramBot) {
+		tb.log = z
+	}
+}
 
+// NewBotListener returns a new instance of the bot listener.
+func NewBotListener(token string, opts ...Option) (*TelegramBot, error) {
 	// -- Get the client
-	bot, err := tgbotapi.NewBotAPI(opts.Token)
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 
-	if opts.Debug != nil && *opts.Debug {
-		bot.Debug = *opts.Debug
+	// -- Set the struct
+	locale, _ := time.LoadLocation("Europe/Rome")
+	output := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: "15:04:05",
 	}
-
-	l.Debug().Str("account", bot.Self.UserName).Msg("authorized")
-
-	// -- Get the values from the options
-	var offset, timeout = defaultOffset, defaultTimeout
-	if opts.Offset != nil && *opts.Offset > 0 {
-		offset = *opts.Offset
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Now().In(locale)
 	}
-	if opts.Timeout != nil && *opts.Timeout > 0 {
-		timeout = *opts.Timeout
+	tgBot := &TelegramBot{
+		Client: bot,
+		log:    zerolog.New(output).With().Timestamp().Logger(),
+	}
+	for _, opt := range opts {
+		opt(tgBot)
 	}
 
 	// -- Get the updates channel
-	u := tgbotapi.NewUpdate(offset)
-	u.Timeout = timeout
+	u := tgbotapi.NewUpdate(defaultOffset)
+	u.Timeout = defaultTimeout
 	updChan, err := bot.GetUpdatesChan(u)
 	if err != nil {
 		return nil, err
 	}
+	tgBot.updChan = updChan
 
-	b := &telegramBot{
-		client:  bot,
-		updChan: updChan,
-		texts:   opts.Texts,
-		backend: backend,
-	}
-
-	return b, nil
+	tgBot.log.Info().Str("account", bot.Self.UserName).Msg("authorized")
+	return tgBot, nil
 }
 
-func (b *telegramBot) ListenForUpdates(ctx context.Context, exitChan chan struct{}) {
-	l := log.With().Str("func", "ListenForUpdates").Logger()
-
+// ListenForUpdates starts an infinite loop, getting updates from the bot.
+func (b *TelegramBot) ListenForUpdates(ctx context.Context) {
 	var u tgbotapi.Update
 	for {
 		select {
 		case u = <-b.updChan:
 			b.parseUpdate(&u)
 		case <-ctx.Done():
-			l.Info().Msg("exiting")
-			close(exitChan)
 			return
 		}
 	}
 }
 
-func (b *telegramBot) parseUpdate(update *tgbotapi.Update) {
-	l := log.With().Str("func", "ListenForUpdates").Logger()
-	text := update.Message.Text
-	if len(text) > 200 {
-		text = text[0:100] + "..."
-	}
-	l.Debug().Int64("chat-id", update.Message.Chat.ID).Str("title", update.Message.Chat.Title).
-		Str("type", update.Message.Chat.Title).Str("text", text).Msg("got message")
+func (b *TelegramBot) parseUpdate(update *tgbotapi.Update) {
+	l := b.log.With().Int("update-id", update.UpdateID).Logger()
 
 	if update.Message == nil {
 		// ignore any non-Message Updates
-		l.Debug().Msg("got non-message update. Skipping...")
+		b.log.Info().Msg("got non-message update. Skipping...")
 		return
 	}
 
 	l = l.With().Str("from", update.Message.From.FirstName).Int64("chat-id", update.Message.Chat.ID).Logger()
+	text := update.Message.Text
+	if len(text) > 200 {
+		text = fmt.Sprintf("%s...", text[0:100])
+	}
+	l.Debug().Int64("chat-id", update.Message.Chat.ID).Str("title", update.Message.Chat.Title).
+		Str("type", update.Message.Chat.Title).Str("text", text).Msg("got message")
 
 	switch update.Message.Text {
 	case "/start", "/restart":
 		b.startChat(update)
 	case "/stop":
 		b.stopChat(update)
-	case "/siti", "/websites":
-		// TODO: print available shops
+
+	// .
+	// .
+	// .
+	// Insert other commands here...
+	// .
+	// .
+	// .
+
 	default:
 		// Nothing is printed if the message is not recognized
-		l.Debug().Msg("command not recognized: nothing will be printed...")
+		l.Info().Msg("command not recognized: nothing will be printed...")
 	}
 }
 
-func (b *telegramBot) startChat(update *tgbotapi.Update) {
-	l := log.With().Str("func", "startChat").Int64("chat-id", update.Message.Chat.ID).Logger()
-	if b.backend == nil {
-		l.Warn().Msg("no backend is set")
-		return
-	}
-
-	// -- Get the chat
-	_, err := b.backend.GetChatByID(update.Message.Chat.ID)
-	if err == nil {
-		l.Debug().Msg("chat already exists: nothing needs to be done...")
-		return
-	}
-
-	if err != ksb.ErrNotFound {
-		l.Error().Err(err).Msg("error while getting chat")
-		return
-	}
-
-	// -- Store the chat on firestore
-	l.Debug().Msg("chat does not exist, going to create...")
-	c := &pb.Chat{
-		Id:        update.Message.Chat.ID,
-		Title:     update.Message.Chat.Title,
-		Type:      getTelegramChatType(update.Message.Chat),
-		Username:  update.Message.Chat.UserName,
-		FirstName: update.Message.Chat.FirstName,
-		// LastName: update.Message.Chat.LastName,
-	}
-	if err := b.backend.StoreChat(c); err != nil {
-		l.Err(err).Msg("error while storing chat on firestore")
-		return
-	}
-
-	// -- Notify the user
-	message := b.texts["messageWelcome"]
-	if !update.Message.Chat.IsPrivate() {
-		message = b.texts["messageWelcomeGroup"]
-	}
-
-	conf := tgbotapi.NewMessage(update.Message.Chat.ID, message)
-	conf.ReplyToMessageID = update.Message.MessageID
-
-	if _, err := b.client.Send(conf); err != nil {
-		l.Err(err).Msg("could not send welcome message")
-		return
-	}
+func (b *TelegramBot) startChat(update *tgbotapi.Update) {
+	// TODO: publish new user message
 }
 
-func (b *telegramBot) stopChat(update *tgbotapi.Update) {
-	l := log.With().Str("func", "stopChat").Int64("chat-id", update.Message.Chat.ID).Logger()
-	if b.backend == nil {
-		l.Warn().Msg("no backend is set")
-		return
-	}
-
-	// -- Get the chat
-	c, err := b.backend.GetChatByID(update.Message.Chat.ID)
-	if err != nil {
-		if err == ksb.ErrNotFound {
-			l.Debug().Err(err).Msg("chat does not exist: nothing needs to be done...")
-			return
-		}
-
-		l.Error().Err(err).Msg("could not retrieve chat from backend")
-		return
-	}
-	l.Debug().Msg("chat found, goint to remove...")
-
-	if err := b.backend.DeleteChat(c.Id); err != nil {
-		l.Err(err).Msg("error while deleting chat on firestore")
-		return
-	}
-
-	// -- Notify the user
-	conf := tgbotapi.NewMessage(update.Message.Chat.ID, b.texts["messageStop"])
-	conf.ReplyToMessageID = update.Message.MessageID
-
-	if _, err := b.client.Send(conf); err != nil {
-		l.Err(err).Msg("could not send stop message")
-		return
-	}
+func (b *TelegramBot) stopChat(update *tgbotapi.Update) {
+	// TODO: publish user left message
 }
