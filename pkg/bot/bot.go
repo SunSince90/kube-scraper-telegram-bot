@@ -1,3 +1,17 @@
+// Copyright © 2020 Elis Lulja
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package bot
 
 import (
@@ -17,14 +31,16 @@ var (
 )
 
 const (
-	defaultTimeout int = 3600
-	defaultOffset  int = 0
+	defaultTimeout int    = 3600
+	defaultOffset  int    = 0
+	deafulttopic   string = "telegram-events"
 )
 
 // TelegramBot is a structure that holds the telegram bot's information
 type TelegramBot struct {
 	Client  *tgbotapi.BotAPI
 	redis   *redis.Client
+	topic   string
 	updChan tgbotapi.UpdatesChannel
 	log     zerolog.Logger
 	lock    sync.Mutex
@@ -44,6 +60,13 @@ func WithLogger(z zerolog.Logger) Option {
 func WithRedisClient(r *redis.Client) Option {
 	return func(tb *TelegramBot) {
 		tb.redis = r
+	}
+}
+
+// WithTopicName sets the topic name for publishing events
+func WithTopicName(topic string) Option {
+	return func(tb *TelegramBot) {
+		tb.topic = topic
 	}
 }
 
@@ -136,9 +159,24 @@ func (b *TelegramBot) parseUpdate(update *tgbotapi.Update) {
 }
 
 func (b *TelegramBot) startChat(update *tgbotapi.Update) {
-	// TODO: publish new user message
+	if b.redis != nil {
+		b.log.Warn().Msg("redis is not set, returning...")
+		return
+	}
+
+	if update.Message == nil {
+		// Ignore non-message event
+		return
+	}
+
+	// Handle the event, i.e. publish the event as so:
+	ctx, canc := context.WithTimeout(context.Background(), 15*time.Second)
+	defer canc()
+	if res := b.redis.Publish(ctx, b.topic, update.Message); res.Err() != nil {
+		b.log.Err(res.Err()).Msg("could not publish event, returning...")
+	}
 }
 
 func (b *TelegramBot) stopChat(update *tgbotapi.Update) {
-	// TODO: publish user left message
+	// TODO: handle the event, i.e. as above
 }
